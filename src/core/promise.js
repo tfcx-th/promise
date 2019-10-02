@@ -1,5 +1,6 @@
 const typeOf = require('../util/type')
 const tryCall = require('../util/try-call')
+const isArray = require('../util/is-array')
 
 const IS_ERROR = 'Is_A_Error'
 let LAST_ERROR = null
@@ -49,7 +50,8 @@ function TFCXPromise(fn) {
   this._state = PENDING
   // store the value or error once fulfilled or rejected
   this._value = null
-  this._deferreds = []
+  // store Handlers, can be a single object or a array is necessary
+  this._deferreds = null
   if (fn === NOOP) return
   doResolve(fn, this)
 }
@@ -62,9 +64,25 @@ TFCXPromise.prototype.then = function (onFulfilled, onRejected) {
 
 function handle(self, deferred) {
   if (self._state === PENDING) {
+    if (self._deferreds === null) {
+      self._deferreds = deferred
+      return
+    }
+    if (!isArray(self._deferreds)) {
+      self._deferreds = [self._deferreds, deferred]
+      return
+    }
     self._deferreds.push(deferred)
     return
   }
+  handlerResolved(self, deferred)
+}
+
+/**
+ * 
+ */
+function handlerResolved(self, deferred) {
+
 }
 
 function Handler(onFulfilled, onRejected, promise) {
@@ -81,14 +99,15 @@ function resolve(self, value) {
   if (self === value) {
     return reject(self, new TypeError('A promise cannot be resolved with itself.'))
   }
-
-  if (value && value instanceof TFCXPromise) {
-
-  }
   if (value && (typeOf(value) === 'function' || typeOf(value) === 'object')) {
     var then = getThen(value)
+    // then is not exist
     if (then === IS_ERROR) {
       return reject(self, LAST_ERROR)
+    }
+    if (then === self.then && value instanceof TFCXPromise) {
+      self._state = ''
+      self._value = value
     }
     if (typeOf(then) === 'function') {
       doResolve(then.bind(value), self)
@@ -101,17 +120,28 @@ function resolve(self, value) {
 }
 
 /**
- * 
+ * Set promise to REJECTED
  */
-function reject(promise, value) {
-
+function reject(self, value) {
+  self._state = REJECTED
+  self._value = value
+  finale(self)
 }
 
 /**
- * 
+ * Judge _deferreds is a array or not and call every deferred in it
  */
-function finale(promise) {
-
+function finale(self) {
+  if (self._deferreds === null) return
+  if (!isArray(self._deferreds)) {
+    handle(self, self._deferreds)
+    self._deferreds = null
+  } else {
+    self._deferreds.forEach(deferred => {
+      handle(self, deferred)
+    })
+    self._deferreds = null
+  }
 }
 
 /**
