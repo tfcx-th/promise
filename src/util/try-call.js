@@ -5,7 +5,6 @@ function tryCall(argsNum, LAST_ERROR=null, IS_ERROR) {
         fn(a)
       } catch (error) {
         LAST_ERROR = error
-        console.log(LAST_ERROR)
         return IS_ERROR
       }
     }
@@ -15,7 +14,6 @@ function tryCall(argsNum, LAST_ERROR=null, IS_ERROR) {
         fn(a, b)
       } catch (error) {
         LAST_ERROR = error
-        console.log(LAST_ERROR)
         return IS_ERROR
       }
     }

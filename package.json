@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/tfcx-th/promise/issues"
   },
-  "homepage": "https://github.com/tfcx-th/promise#readme"
+  "homepage": "https://github.com/tfcx-th/promise#readme",
+  "dependencies": {
+    "asap": "^2.0.6"
+  }
 }

@@ -1,6 +1,9 @@
+'use strict';
+
 const typeOf = require('../util/type')
 const tryCall = require('../util/try-call')
 const isArray = require('../util/is-array')
+const asap = require('asap/raw')
 
 const IS_ERROR = 'Is_A_Error'
 let LAST_ERROR = null
@@ -18,7 +21,7 @@ function getThen(obj) {
 }
 
 // define a empty function
-const NOOP = () => {}
+const NOOP = function () {}
 
 /**
  * States:
@@ -33,7 +36,7 @@ const PENDING = 'pending'
 const FULFILLED = 'fulfilled'
 const REJECTED = 'rejected'
 
-module.exports = TFCXPromise;
+module.exports = TFCXPromise
 
 /**
  * @param {function} fn - fn has two param, resolve and reject, both of them are functions
@@ -63,6 +66,9 @@ TFCXPromise.prototype.then = function (onFulfilled, onRejected) {
 }
 
 function handle(self, deferred) {
+  while (self._value instanceof TFCXPromise) {
+    self = self._value
+  }
   if (self._state === PENDING) {
     if (self._deferreds === null) {
       self._deferreds = deferred
@@ -82,7 +88,25 @@ function handle(self, deferred) {
  * 
  */
 function handlerResolved(self, deferred) {
-
+  asap(function () {
+    const cb = self._state === FULFILLED ? deferred.onFulfilled : deferred.onRejected
+    if (cb === null) {
+      if (self._state === FULFILLED) {
+        resolve(deferred.promise, self._value)
+      } else {
+        reject(deferred.promise, self._value)
+      }
+      return
+    }
+    var res = tryCallOne(cb, self._value)
+    console.log(self._value)
+    // console.log(res + 'asda')
+    if (res === IS_ERROR) {
+      reject(deferred.promise, LAST_ERROR)
+    } else {
+      resolve(deferred.promise, res)
+    }
+  })
 }
 
 function Handler(onFulfilled, onRejected, promise) {
@@ -106,13 +130,15 @@ function resolve(self, value) {
       return reject(self, LAST_ERROR)
     }
     if (then === self.then && value instanceof TFCXPromise) {
-      self._state = ''
       self._value = value
+      finale(self)
+      return
     }
+    // thenable object, object with a then method
     if (typeOf(then) === 'function') {
       doResolve(then.bind(value), self)
       return
-    } else if () {}
+    }
   }
   self._state = FULFILLED
   self._value = value
@@ -132,8 +158,9 @@ function reject(self, value) {
  * Judge _deferreds is a array or not and call every deferred in it
  */
 function finale(self) {
+  console.log(`self._deferredState = ${self._deferreds}`)
   if (self._deferreds === null) return
-  if (!isArray(self._deferreds)) {
+  if (self._deferreds && !isArray(self._deferreds)) {
     handle(self, self._deferreds)
     self._deferreds = null
   } else {
