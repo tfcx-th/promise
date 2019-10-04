@@ -3,22 +3,13 @@
 const typeOf = require('../util/type')
 const tryCall = require('../util/try-call')
 const isArray = require('../util/is-array')
+const getThen = require('../util/get-then')(LAST_ERROR)
 const asap = require('asap/raw')
 
-const IS_ERROR = 'Is_A_Error'
-let LAST_ERROR = null
+var LAST_ERROR = null
 
-const tryCallOne = tryCall(1, LAST_ERROR, IS_ERROR)
-const tryCallTwo = tryCall(2, LAST_ERROR, IS_ERROR)
-
-function getThen(obj) {
-  try {
-    return obj.then
-  } catch (error) {
-    LAST_ERROR = error
-    return IS_ERROR
-  }
-}
+const tryCallOne = tryCall(1, LAST_ERROR)
+const tryCallTwo = tryCall(2, LAST_ERROR)
 
 // define a empty function
 const NOOP = function () {}
@@ -84,9 +75,6 @@ function handle(self, deferred) {
   handlerResolved(self, deferred)
 }
 
-/**
- * 
- */
 function handlerResolved(self, deferred) {
   asap(function () {
     const cb = self._state === FULFILLED ? deferred.onFulfilled : deferred.onRejected
@@ -99,10 +87,8 @@ function handlerResolved(self, deferred) {
       return
     }
     var res = tryCallOne(cb, self._value)
-    console.log(self._value)
-    // console.log(res + 'asda')
-    if (res === IS_ERROR) {
-      reject(deferred.promise, LAST_ERROR)
+    if (res instanceof Error) {
+      reject(deferred.promise, res)
     } else {
       resolve(deferred.promise, res)
     }
@@ -126,8 +112,8 @@ function resolve(self, value) {
   if (value && (typeOf(value) === 'function' || typeOf(value) === 'object')) {
     var then = getThen(value)
     // then is not exist
-    if (then === IS_ERROR) {
-      return reject(self, LAST_ERROR)
+    if (then instanceof Error) {
+      return reject(self, then)
     }
     if (then === self.then && value instanceof TFCXPromise) {
       self._value = value
@@ -158,7 +144,6 @@ function reject(self, value) {
  * Judge _deferreds is a array or not and call every deferred in it
  */
 function finale(self) {
-  console.log(`self._deferredState = ${self._deferreds}`)
   if (self._deferreds === null) return
   if (self._deferreds && !isArray(self._deferreds)) {
     handle(self, self._deferreds)
@@ -187,8 +172,8 @@ function doResolve(fn, promise) {
     done = true
     reject(promise, err)
   })
-  if (!done && result === IS_ERROR) {
+  if (!done && result instanceof Error) {
     done = true
-    reject(promise, LAST_ERROR)
+    reject(promise, result)
   }
 }

@@ -1,0 +1,5 @@
+module.exports = require('./core/index')
+require('./methods/all')
+require('./methods/race')
+require('./methods/reject')
+require('./methods/resolve')

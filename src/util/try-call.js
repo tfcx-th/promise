@@ -1,20 +1,20 @@
-function tryCall(argsNum, LAST_ERROR=null, IS_ERROR) {
+function tryCall(argsNum, LAST_ERROR) {
   if (argsNum === 1) {
     return function (fn, a) {
       try {
-        fn(a)
-      } catch (error) {
-        LAST_ERROR = error
-        return IS_ERROR
+        return fn(a)
+      } catch (e) {
+        LAST_ERROR = e
+        return LAST_ERROR
       }
     }
   } else if (argsNum === 2) {
     return function (fn, a, b) {
       try {
         fn(a, b)
-      } catch (error) {
-        LAST_ERROR = error
-        return IS_ERROR
+      } catch (e) {
+        LAST_ERROR = e
+        return LAST_ERROR
       }
     }
   } else {

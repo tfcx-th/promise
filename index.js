@@ -1,10 +1,14 @@
-let promise = require('./src/core/promise')
+let promise = require('./src/index')
 
 new promise((resolve) => {
-  resolve(11111)
-}).then(val => {
-  // console.log(val)
-  return 1234
+  resolve({
+    then: new Error('asd')
+  })
 }).then(val => {
   console.log(val)
+  throw new TypeError('asd')
+}, err => {
+  console.error(err)
+}).catch(reason => {
+  console.error(reason)
 })
